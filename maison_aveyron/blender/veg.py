@@ -226,8 +226,8 @@ def grass_material():
     hi = s.node('ShaderNodeHairInfo')
     rnd = hi.outputs['Random']
     icpt = hi.outputs['Intercept']
-    base = s.ramp(rnd, [(0.0, srgb(56, 82, 24)), (0.35, srgb(72, 98, 30)), (0.6, srgb(88, 108, 34)),
-                        (0.82, srgb(104, 116, 40)), (0.93, srgb(140, 130, 62)), (1.0, srgb(170, 150, 90))])
+    base = s.ramp(rnd, [(0.0, srgb(64, 90, 26)), (0.35, srgb(82, 106, 32)), (0.6, srgb(98, 116, 38)),
+                        (0.82, srgb(116, 124, 46)), (0.93, srgb(150, 138, 68)), (1.0, srgb(178, 158, 96))])
     P = s.geo('Position')
     patch = s.maprange(s.noise(P, 0.25, detail=3.0), 0.3, 0.7, 0.8, 1.15)
     base = s.hsv(base, v=patch)

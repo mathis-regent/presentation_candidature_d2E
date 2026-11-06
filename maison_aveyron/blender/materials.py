@@ -84,7 +84,7 @@ def mat_dressed():
     P = s.geo('Position')
     rnd = s.attr('rnd')
     base = s.ramp(s.m('FRACT', s.m('MULTIPLY', rnd, 7.31)), [
-        (0.0, srgb(164, 140, 104)), (0.5, srgb(178, 154, 116)), (1.0, srgb(150, 126, 90))])
+        (0.0, srgb(150, 126, 92)), (0.5, srgb(162, 138, 102)), (1.0, srgb(138, 114, 82))])
     n1 = s.noise(P, 4.0, detail=6.0, rough=0.6)
     col = s.mix(s.maprange(n1, 0.3, 0.7), s.hsv(base, v=0.78), s.hsv(base, v=1.05, s=0.9))
     pits = s.maprange(s.noise(P, 90.0, detail=1.0), 0.6, 0.75)

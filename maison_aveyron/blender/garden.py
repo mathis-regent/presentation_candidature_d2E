@@ -109,7 +109,7 @@ def no_grass_mask(x, y):
     for w in WALLS:
         m |= dist_to_polyline(_smooth(w, 2), x, y) < 0.35
     for (c, r, a, _) in path_stones():
-        m |= np.hypot(x - c[0], y - c[1]) < r * 0.95
+        m |= np.hypot(x - c[0], y - c[1]) < r * 0.8
     return m
 
 
@@ -125,7 +125,7 @@ def build_path(col, rng):
         ca, sa = math.cos(a), math.sin(a)
         pts = pts @ np.array([[ca, sa], [-sa, ca]]) + c
         gz = land.height(pts[:, 0], pts[:, 1])
-        ztop = gz.max() + 0.025
+        ztop = float(np.median(gz)) + 0.012
         top = np.column_stack([pts, np.full(n, ztop)])
         bot = np.column_stack([pts, gz - 0.06])
         V += [top, bot]
@@ -136,7 +136,7 @@ def build_path(col, rng):
             F.append([nv + k, nv + n + k, nv + n + k2, nv + k2][::-1])
         A += [rr] * (n + 2)
         nv += 2 * n
-    return mesh_np('path_stones', np.concatenate(V), F, mats=[M.get('flagstone')], collection=col,
+    return mesh_np('path_stones', np.concatenate(V), F, mats=[M.get('drystone')], collection=col,
                    face_attrs={'rnd': np.array(A)})
 
 
