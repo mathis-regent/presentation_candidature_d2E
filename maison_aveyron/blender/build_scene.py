@@ -27,7 +27,7 @@ VIEWS = {
     # interiors: camera height is absolute (ground floor at z=0.15)
     'int_kitchen': dict(pos=[6.9, -2.0], target=[2.0, 3.6], z=1.45, shift=0.0, lens=16.0, interior='full',
                         flags='house,land,garden,hero,woods,grass', sector=[5.17, 4.9, 90.0, 150.0]),
-    'int_living': dict(pos=[2.9, -2.55], target=[-2.4, -3.0], z=1.4, shift=0.0, lens=20.0, interior='full',
+    'int_living': dict(pos=[1.55, -3.65], target=[-2.0, -1.75], z=1.3, shift=0.0, lens=20.0, interior='full',
                        flags='house,land,garden,hero', sector=[5.17, 4.9, 90.0, 150.0]),
 }
 VW = VIEWS[VIEW]

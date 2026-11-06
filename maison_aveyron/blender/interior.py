@@ -36,6 +36,17 @@ def box(mb, x0, x1, y0, y1, z0, z1, mat=0, attr=None, tpl=None, rng=None):
                mat=mat, fattr=(rng.random() if (attr is None and rng is not None) else (attr or 0.0)), template=tpl)
 
 
+def cbox(mb, x0, x1, y0, y1, z0, z1, c=0.03, mat=0, attr=0.0, R=None):
+    """Box with an absolute chamfer c (smooth-shaded -> soft upholstery look)."""
+    tv, tf = CBOX
+    h = np.array([(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2])
+    cc = np.minimum(c, h * 0.45)
+    V = np.sign(tv) * np.where(np.abs(tv) > 0.99, h, h - cc)
+    if R is not None:
+        V = V @ np.asarray(R).T
+    mb.add(V + np.array([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2]), tf, mat, attr)
+
+
 def lathe(mb, prof, cx, cy, z0=0.0, n=28, mat=0, attr=0.0):
     ang = np.linspace(0, 2 * math.pi, n, endpoint=False)
     V = []
@@ -367,21 +378,33 @@ def dining(col, rng):
 def living(col, rng):
     mb = MeshBuilder()  # 0 linen 1 cushions 2 rug 3 oak 4 stone(worktop) 5 screen 6 dressed stone 7 soot 8 plaster 9 books 10 ceramic 11 bark 12 black metal 13 shade glow
     f0 = FFL0
-    # L sofa, back to the kitchen, facing the TV on the south wall
+    # L sofa (soft, smooth-shaded upholstery), back to the kitchen, facing the TV on the south wall
+    so = MeshBuilder()   # 0 linen 1 cushions
     sx0, sx1, sy1, sy0 = -1.8, 0.5, -1.5, -2.45
-    box(mb, sx0 + 0.1, sx1 - 0.1, sy0, sy1 - 0.1, f0 + 0.05, f0 + 0.38, 0, tpl=CBOX)
-    box(mb, sx1 - 0.95, sx1 - 0.1, -3.3 + 0.004, sy0 + 0.05, f0 + 0.05, f0 + 0.379, 0, tpl=CBOX)
-    box(mb, sx0 + 0.19, sx1 - 0.19, sy1 - 0.24, sy1 + 0.008, f0 + 0.05, f0 + 0.78, 0, tpl=CBOX)        # back
-    box(mb, sx0 - 0.008, sx0 + 0.2, sy0 - 0.008, sy1 + 0.008, f0 + 0.05, f0 + 0.62, 0, tpl=CBOX)      # arm
-    box(mb, sx1 - 0.2, sx1 + 0.008, -3.3 - 0.008, sy1 + 0.008, f0 + 0.05, f0 + 0.62, 0, tpl=CBOX)    # arm (chaise side)
-    for k in range(3):                                                           # seat cushions
-        a = sx0 + 0.2 + k * (sx1 - 0.2 - sx0 - 0.2) / 3
-        b = a + (sx1 - 0.2 - sx0 - 0.2) / 3
-        box(mb, a + 0.005, b - 0.005, sy0 + 0.02, sy1 - 0.24, f0 + 0.38, f0 + 0.5, 0, tpl=CBOX)
-        box(mb, a + 0.01, b - 0.01, sy1 - 0.42, sy1 - 0.22, f0 + 0.5, f0 + 0.95, 0, tpl=CBOX)
-    box(mb, sx1 - 0.95 + 0.01, sx1 - 0.21, -3.28, sy0 + 0.02, f0 + 0.38, f0 + 0.5, 0, tpl=CBOX)
-    for (cx, cy, rz, a) in ((-1.45, sy1 - 0.45, 0.2, 0.1), (-1.1, sy1 - 0.46, -0.15, 0.5), (0.1, sy1 - 0.45, 0.1, 0.9)):
-        mb.add_box((cx, cy, f0 + 0.72), (0.22, 0.07, 0.2), R=rot_z(rz), mat=1, fattr=a, template=CBOX)
+    cy1 = -3.3
+    lg = 0.1
+    cbox(so, sx0, sx1, sy0, sy1, f0 + lg, f0 + 0.4, 0.03)                          # frame (main)
+    cbox(so, sx1 - 0.95, sx1, cy1, sy0 + 0.1, f0 + lg, f0 + 0.4, 0.03)             # frame (chaise)
+    cbox(so, sx0, sx1, sy1 - 0.22, sy1, f0 + 0.38, f0 + 0.78, 0.04)                # back rest
+    cbox(so, sx0, sx0 + 0.18, sy0, sy1 - 0.1, f0 + 0.38, f0 + 0.64, 0.05)          # arm
+    cbox(so, sx1 - 0.18, sx1, cy1, sy1 - 0.1, f0 + 0.38, f0 + 0.64, 0.05)          # arm chaise side
+    n = 3
+    a0, a1 = sx0 + 0.18, sx1 - 0.18
+    for k in range(n):
+        a = a0 + k * (a1 - a0) / n
+        b = a + (a1 - a0) / n
+        cbox(so, a + 0.004, b - 0.004, sy0 + 0.01, sy1 - 0.2, f0 + 0.4, f0 + 0.56, 0.05)        # seat
+        cbox(so, a + 0.01, b - 0.01, sy1 - 0.42, sy1 - 0.2, f0 + 0.56, f0 + 0.98, 0.07,
+             R=None)                                                                             # back cushion
+    cbox(so, sx1 - 0.95 + 0.01, sx1 - 0.185, cy1 + 0.01, sy0 + 0.1, f0 + 0.4, f0 + 0.56, 0.05)
+    for (cx, cy, rz, a) in ((-1.45, sy1 - 0.5, 0.25, 0.1), (-1.12, sy1 - 0.52, -0.12, 0.5), (0.12, sy1 - 0.5, 0.15, 0.9),
+                            (-0.3, sy1 - 0.52, -0.2, 0.1)):
+        R = rot_z(rz) @ np.array([[1, 0, 0], [0, math.cos(-0.35), -math.sin(-0.35)], [0, math.sin(-0.35), math.cos(-0.35)]])
+        cbox(so, cx - 0.23, cx + 0.23, cy - 0.07, cy + 0.07, f0 + 0.72 - 0.21, f0 + 0.72 + 0.21, 0.07, mat=1, attr=a, R=None)
+    sofa = so.build('sofa', [M.get('linen'), M.get('cushion')], col, smooth=True)
+    for (lx_, ly_) in ((sx0 + 0.08, sy0 + 0.08), (sx0 + 0.08, sy1 - 0.08), (sx1 - 0.08, sy1 - 0.08), (sx1 - 0.08, cy1 + 0.08),
+                       (sx1 - 0.87, cy1 + 0.08)):
+        box(mb, lx_ - 0.02, lx_ + 0.02, ly_ - 0.02, ly_ + 0.02, f0, f0 + lg, 3, attr=0.2)
     # rug, coffee table
     box(mb, -2.1, 0.75, -4.0, -1.85, f0, f0 + 0.012, 2)
     lathe(mb, [(0.0, 0.0), (0.3, 0.0), (0.3, 0.3), (0.5, 0.3), (0.5, 0.36), (0.0, 0.36)], -0.75, -3.25, f0 + 0.012, mat=4, n=40)
@@ -392,6 +415,9 @@ def living(col, rng):
     box(mb, PX(930), PX(1010), YI0, YI0 + 0.42, f0, f0 + 0.48, 3, rng=rng)
     box(mb, (PX(930) + PX(1010)) / 2 - 0.72, (PX(930) + PX(1010)) / 2 + 0.72, YI0 + 0.02, YI0 + 0.05, f0 + 1.0, f0 + 1.82, 5)
     lathe(mb, [(0.0, 0.0), (0.06, 0.0), (0.09, 0.12), (0.05, 0.3), (0.04, 0.36)], PX(1000) - 0.1, YI0 + 0.22, f0 + 0.48, mat=10)
+    tlx, tly = PX(930) + 0.3, YI0 + 0.22
+    lathe(mb, [(0.0, 0.0), (0.07, 0.0), (0.1, 0.1), (0.08, 0.26), (0.03, 0.32), (0.015, 0.4)], tlx, tly, f0 + 0.48, mat=10)
+    lathe(mb, [(0.17, f0 + 0.86), (0.13, f0 + 1.08)], tlx, tly, 0, mat=13, n=32)
     # fireplace (cheminée) on the séjour west wall
     fy0, fy1 = -4.15, -2.6
     fx1 = XW + 0.58
@@ -492,7 +518,16 @@ def lights(col):
     for (px, py, zb) in ((tx, PYg(455) + 0.6, FFL0 + 1.95), (tx, PYg(377) - 0.6, FFL0 + 1.95),
                          (2.45, 2.2, FFL0 + 1.85), (3.05, 2.2, FFL0 + 1.85)):
         point('pend_%.1f_%.1f' % (px, py), (px, py, zb + 0.08), 22.0)
-    point('floorlamp', (-1.92, -1.2, FFL0 + 1.6), 14.0, 0.1)
+    point('floorlamp', (-1.92, -1.2, FFL0 + 1.6), 18.0, 0.1)
+    point('tablelamp', (PX(930) + 0.3, YI0 + 0.22, FFL0 + 0.97), 14.0, 0.05)
+    # soft fill above the séjour (not seen by the camera), stands in for evening bounce light
+    ld = bpy.data.lights.new('fill_sejour', 'AREA')
+    ld.shape, ld.size, ld.size_y, ld.energy, ld.color = 'RECTANGLE', 2.2, 2.2, 70.0, (1.0, 0.8, 0.6)
+    ob = bpy.data.objects.new('fill_sejour', ld)
+    ob.location = (-0.6, -2.6, ZBM - 0.02)
+    ob.visible_camera = False
+    ob.visible_glossy = False
+    col.objects.link(ob)
     # portals on the séjour openings (garden side)
     for (u, z, w, h) in ((PX(1170), FFL0, 2.40, 2.45), (PX(1045), 1.22, 1.10, 1.13)):
         portal('portal_%.1f' % u, (u, YI1 - 0.01, z + h / 2), w, h, (-math.pi / 2, 0, 0))
