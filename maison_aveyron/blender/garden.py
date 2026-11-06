@@ -17,7 +17,6 @@ DRIVE = [(21.5, 7.5), (28.0, 12.0), (38.0, 15.5), (52.0, 16.5), (68.0, 13.5), (8
 DRIVE_W = 3.4
 WALLS = [
     [(-30.0, 31.5), (-12.0, 33.5), (2.0, 32.0), (12.0, 28.5), (18.5, 22.0), (21.0, 16.5)],   # garden edge
-    [(27.5, 6.5), (34.0, 9.8), (45.0, 12.5), (60.0, 12.0), (76.0, 8.0)],                  # along the drive
 ]
 
 
@@ -76,6 +75,31 @@ def drive_line():
     return DRIVE_S
 
 
+# stepping-stone path across the lawn towards the terrace
+PATH = [(-22.5, 21.0), (-17.0, 16.8), (-10.0, 12.6), (-4.0, 9.8), (TERR[0] - 1.0, (TERR[2] + TERR[3]) / 2 + 0.6)]
+_path_stones = []
+
+
+def path_stones(rng=None):
+    if not _path_stones:
+        rng = rng or np.random.default_rng(5)
+        line = _resample(_smooth(PATH, 3), 0.05)
+        seg = np.linalg.norm(np.diff(line, axis=0), axis=1)
+        cum = np.concatenate([[0], np.cumsum(seg)])
+        s = 0.4
+        while s < cum[-1] - 0.3:
+            k = np.searchsorted(cum, s) - 1
+            p = line[k]
+            t = line[k + 1] - line[k]
+            t /= np.linalg.norm(t)
+            nrm = np.array([-t[1], t[0]])
+            c = p + nrm * rng.normal(0, 0.06)
+            r = rng.uniform(0.3, 0.4)
+            _path_stones.append((c, r, math.atan2(t[1], t[0]) + rng.normal(0, 0.25), rng.random()))
+            s += rng.uniform(0.74, 0.9)
+    return _path_stones
+
+
 def no_grass_mask(x, y):
     """True where grass must not grow (house, terrace, gravel, walls)."""
     m = (np.abs(x) < HL + 0.45) & (np.abs(y) < HD + 0.45)
@@ -84,7 +108,36 @@ def no_grass_mask(x, y):
     m |= dist_to_polyline(drive_line(), x, y) < DRIVE_W / 2
     for w in WALLS:
         m |= dist_to_polyline(_smooth(w, 2), x, y) < 0.35
+    for (c, r, a, _) in path_stones():
+        m |= np.hypot(x - c[0], y - c[1]) < r * 0.95
     return m
+
+
+def build_path(col, rng):
+    V, F, A = [], [], []
+    nv = 0
+    for (c, r, a, rr) in path_stones():
+        n = 9
+        ang = np.sort(rng.uniform(0, 2 * math.pi, n))
+        rad = r * rng.uniform(0.75, 1.05, n)
+        ex, ey = 1.0, rng.uniform(0.65, 0.85)
+        pts = np.stack([np.cos(ang) * rad * ex, np.sin(ang) * rad * ey], 1)
+        ca, sa = math.cos(a), math.sin(a)
+        pts = pts @ np.array([[ca, sa], [-sa, ca]]) + c
+        gz = land.height(pts[:, 0], pts[:, 1])
+        ztop = gz.max() + 0.025
+        top = np.column_stack([pts, np.full(n, ztop)])
+        bot = np.column_stack([pts, gz - 0.06])
+        V += [top, bot]
+        F.append(list(range(nv, nv + n)))
+        F.append(list(range(nv + 2 * n - 1, nv + n - 1, -1)))
+        for k in range(n):
+            k2 = (k + 1) % n
+            F.append([nv + k, nv + n + k, nv + n + k2, nv + k2][::-1])
+        A += [rr] * (n + 2)
+        nv += 2 * n
+    return mesh_np('path_stones', np.concatenate(V), F, mats=[M.get('flagstone')], collection=col,
+                   face_attrs={'rnd': np.array(A)})
 
 
 # ----------------------------------------------------------------------------
@@ -364,4 +417,5 @@ def build(rng):
     build_furniture(col, rng)
     build_gravel(col, rng)
     build_drystone(col, rng)
+    build_path(col, rng)
     return col

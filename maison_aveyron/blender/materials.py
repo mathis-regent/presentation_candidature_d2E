@@ -38,7 +38,7 @@ def mat_stone():
     cell_col = s.mix(region, vb, vs)
     edge = s.mix(region, eb, s.m('MULTIPLY', es, 0.8), dtype='FLOAT')
     edge_n = s.m('ADD', edge, s.m('MULTIPLY', s.m('SUBTRACT', s.noise(P, 22.0, detail=3.0), 0.5), 0.07))
-    stone_mask = s.maprange(edge_n, 0.03, 0.085)
+    stone_mask = s.maprange(edge_n, 0.016, 0.05)
     r = s.sep(cell_col)
     stone_col = s.ramp(r[0], [
         (0.00, srgb(182, 146, 98)),
@@ -57,8 +57,8 @@ def mat_stone():
     lich = s.maprange(s.noise(P, 3.0, detail=4.0), 0.64, 0.7)
     stone_col = s.mix(s.m('MULTIPLY', lich, 0.35), stone_col, srgb(176, 172, 156))
     # mortar: recessed, slightly darker sandy lime; darker close to the stone edge (shadowed recess)
-    mortar = s.mix(s.noise(P, 40.0, detail=2.0), srgb(150, 134, 108), srgb(120, 106, 84))
-    recess = s.maprange(edge_n, 0.0, 0.035, 0.0, 1.0)
+    mortar = s.mix(s.noise(P, 40.0, detail=2.0), srgb(122, 108, 86), srgb(96, 84, 66))
+    recess = s.maprange(edge_n, 0.0, 0.02, 0.0, 1.0)
     mortar = s.mix(s.m('MULTIPLY', s.m('SUBTRACT', 1.0, recess), 0.5), mortar, srgb(70, 60, 48))
     col = s.mix(stone_mask, mortar, stone_col)
     z = s.sep(P)[2]
@@ -84,9 +84,9 @@ def mat_dressed():
     P = s.geo('Position')
     rnd = s.attr('rnd')
     base = s.ramp(s.m('FRACT', s.m('MULTIPLY', rnd, 7.31)), [
-        (0.0, srgb(184, 162, 124)), (0.5, srgb(196, 176, 140)), (1.0, srgb(170, 148, 110))])
+        (0.0, srgb(164, 140, 104)), (0.5, srgb(178, 154, 116)), (1.0, srgb(150, 126, 90))])
     n1 = s.noise(P, 4.0, detail=6.0, rough=0.6)
-    col = s.mix(s.maprange(n1, 0.35, 0.7), s.hsv(base, v=0.86), s.hsv(base, v=1.06, s=0.9))
+    col = s.mix(s.maprange(n1, 0.3, 0.7), s.hsv(base, v=0.78), s.hsv(base, v=1.05, s=0.9))
     pits = s.maprange(s.noise(P, 90.0, detail=1.0), 0.6, 0.75)
     col = s.mix(s.m('MULTIPLY', pits, 0.35), col, srgb(120, 108, 88))
     z = s.sep(P)[2]

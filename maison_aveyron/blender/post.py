@@ -11,8 +11,8 @@ from land import fbm, sstep
 src, dst = sys.argv[1], sys.argv[2]
 opt = dict(a.split('=') for a in sys.argv[3:])
 P = {k: float(v) for k, v in dict(
-    haze=1 / 7000.0, haze_h=1500.0, mist=0.012, mist_z=-40.0, mist_h=16.0, clouds=1.0,
-    cloud_alt=2600.0, exposure=0.0, warm=1.0, vignette=0.22, grain=0.012, look=0, mist_bright=1.2).items()}
+    haze=1 / 11000.0, haze_h=1500.0, mist=0.010, mist_z=-40.0, mist_h=16.0, clouds=1.0,
+    cloud_alt=2600.0, exposure=0.0, warm=1.0, vignette=0.22, grain=0.012, look=1, mist_bright=1.2).items()}
 P.update({k: float(v) for k, v in opt.items()})
 
 meta = json.load(open(os.path.splitext(src)[0] + '.json'))
@@ -104,7 +104,7 @@ tau_h = fog_tau(L, dz, C[2], P['haze'], 0.0, P['haze_h'])
 # mist only for rays that dip into the valley; modulate by patchy noise at the end point
 endx = C[0] + D[..., 0] * np.minimum(L, 8000)
 endy = C[1] + D[..., 1] * np.minimum(L, 8000)
-patch = np.clip(0.45 + 1.1 * fbm(endx / 380.0, endy / 380.0, 4, seed=6), 0.0, 1.5)
+patch = np.clip(0.35 + 1.6 * fbm(endx / 300.0, endy / 300.0, 4, seed=6), 0.0, 1.6)
 tau_m = fog_tau(L, dz, C[2], P['mist'], P['mist_z'], P['mist_h']) * patch * geo
 T_h = np.exp(-tau_h)
 T_m = np.exp(-tau_m)

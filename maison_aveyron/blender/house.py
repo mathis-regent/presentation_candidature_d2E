@@ -202,8 +202,8 @@ def build_stonework(col, rng):
                 lx, ly = (0.58, 0.30) if alt % 2 == 0 else (0.30, 0.58)
                 lx += rng.uniform(-0.05, 0.05)
                 ly += rng.uniform(-0.05, 0.05)
-                x0, x1 = sorted((sx * (HL + 0.014), sx * (HL - lx)))
-                y0, y1 = sorted((sy * (HD + 0.014), sy * (HD - ly)))
+                x0, x1 = sorted((sx * (HL + 0.006), sx * (HL - lx)))
+                y0, y1 = sorted((sy * (HD + 0.006), sy * (HD - ly)))
                 mb.add_box(((x0 + x1) / 2, (y0 + y1) / 2, z + hgt / 2),
                            ((x1 - x0) / 2, (y1 - y0) / 2, hgt / 2 - 0.005), fattr=rng.random())
                 z += hgt

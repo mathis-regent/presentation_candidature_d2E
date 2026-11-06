@@ -287,5 +287,7 @@ def grass(name, V, F, weights, count, length, collection, mat, children=10, chil
     ps.use_close_tip = True
     ps.material_slot = mat.name
     psys.vertex_group_density = 'dens'
+
+    ob.show_instancer_for_render = False
     ps.length_random = 0.6 if hasattr(ps, 'length_random') else 0
     return ob

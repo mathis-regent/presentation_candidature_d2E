@@ -44,7 +44,7 @@ placed one per room, centred on each room's exterior wall.
 * Coursed rubble limestone walls (warm beige-golden), lime pointing, dressed quoins, lintels and sills
 * Steep (47°) roof of individual schist *lauzes* (~6,000 modelled slabs), stone chimney with lauze cap
 * Natural oak plank shutters with battens, painted casement windows, anthracite frames on the modern openings
-* Limestone-paved terrace, oak pergola with vine, lavender, potted box balls
+* Limestone-paved terrace, oak pergola with vine, lavender, potted box balls, stepping-stone path across the lawn
 * Dry-stone walls, gravel courtyard and drive to the garage, old chestnut and oak trees
 * Gentle slope above a valley, bocage hills and the Causse escarpment; golden hour sun,
   aerial haze and mist in the valley (height-fog post-process)

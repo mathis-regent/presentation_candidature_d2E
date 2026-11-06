@@ -20,7 +20,7 @@ CFG = dict(
     final=dict(res=(2400, 1600), samples=384, grass=1.0, trees=1.0, noise=0.012),
 )[PRESET]
 CAM = json.loads(os.environ.get('CAM', '{}'))
-cam_xy = CAM.get('pos', [-30.0, 24.0])
+cam_xy = CAM.get('pos', [-27.0, 21.5])
 cam_t = CAM.get('target', [8.0, -2.0])
 cam_h = CAM.get('h', 1.65)
 cam_shift = CAM.get('shift', 0.06)
@@ -146,11 +146,17 @@ if 'grass' in FLAGS:
               root=0.003, tip=0.0003, rough=0.05, seed=5)
     log('grass')
 
-SS.setup_world(float(os.environ.get('SKY', 0.3)))
-SS.setup_sun(float(os.environ.get('SUNE', 5.0)))
+SS.setup_world(float(os.environ.get('SKY', 0.26)))
+SS.setup_sun(float(os.environ.get('SUNE', 5.8)))
 tz = cz + CAM.get('tilt', 0.0)
 SS.setup_camera(tuple(cam_pos), (cam_t[0], cam_t[1], tz), cam_lens, shift_y=cam_shift)
 SS.render_settings(CFG['res'], CFG['samples'], OUT, noise=CFG['noise'], passes=OUT.endswith('.exr'))
+if os.environ.get('BORDER'):
+    b = [float(v) for v in os.environ['BORDER'].split(',')]
+    sc = bpy.context.scene
+    sc.render.use_border = True
+    sc.render.use_crop_to_border = True
+    sc.render.border_min_x, sc.render.border_max_x, sc.render.border_min_y, sc.render.border_max_y = b
 if os.environ.get('SAVE_BLEND'):
     bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_BLEND'])
 sv = SS.sun_vector()
