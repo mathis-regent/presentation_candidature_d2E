@@ -67,6 +67,8 @@ def mesh_np(name, V, F, mats=None, collection=None, smooth=False,
     me.validate(clean_customdata=False)
     if smooth:
         me.shade_smooth()
+    else:
+        me.shade_flat()
     ob = bpy.data.objects.new(name, me)
     if link:
         (collection or bpy.context.scene.collection).objects.link(ob)

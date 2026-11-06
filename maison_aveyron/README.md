@@ -39,6 +39,28 @@ Assumptions: the sketch has no scale, so the 25 m × 9.4 m size was chosen to gi
 The hatched area is read as an enclosed space with no window. Windows that the plan does not draw were
 placed one per room, centred on each room's exterior wall.
 
+## Interior (ground floor living space)
+
+![cuisine](rendu/interieur_cuisine_sejour.jpg)
+![salon](rendu/interieur_salon_cheminee.jpg)
+
+The open space between the WC/bathroom block and the garage wall follows the plan:
+
+* **Kitchen:** L-shaped worktop along the WC wall and under the garden window (sink under the window),
+  plus a central island with a hob and two stools. Fronts are sage green with brass handles, the worktops
+  honed stone. There are open oak shelves on the WC wall.
+* **Dining:** an oak farmhouse table in the position drawn on the plan, in front of the large glass bay,
+  with spindle-back chairs and two black pendant lamps.
+* **Séjour:** an L-shaped linen sofa facing the TV on the entrance wall, a stone fireplace (*cheminée*)
+  with an oak mantel beam on the west wall, built-in oak bookshelves, a wool rug and a round stone coffee table.
+* **Stair:** quarter-turn stair in the corner by the garage wall (D → A on the plan), plastered with oak treads
+  and a black steel handrail, under a matching opening in the ceiling.
+* **Doors:** oak doors to the WC, the shoe/coat closet and the garage, as on the plan.
+* **Finishes:** limestone flag floor, exposed oak beams and joists with a white ceiling, exposed stone on the
+  garden wall, lime plaster elsewhere.
+* **Light:** golden-hour sun through the glass bay (filtered by the pergola), warm pendants and a floor lamp.
+  The interior shots use a slightly higher sun (9°) so the light reaches inside.
+
 ## Architecture / setting
 
 * Coursed rubble limestone walls (warm beige-golden), lime pointing, dressed quoins, lintels and sills
@@ -60,6 +82,9 @@ python post.py ../rendu/render.exr ../rendu/maison_aveyron_golden_hour.jpg
 ```
 
 `CAM='{"pos":[-30,24],"target":[8,-2]}'` changes the viewpoint. Presets: `preview`, `mid`, `final`.
+
+Interiors: `VIEW=int_kitchen` or `VIEW=int_living` with the `final_int` preset, then
+`python post.py render.exr out.png haze=0 mist=0 clouds=0 exposure=2.7`.
 
 To use an AI image generator instead, see [`PROMPT_IA.md`](PROMPT_IA.md). Give it the render as the
 reference image so it keeps the layout.

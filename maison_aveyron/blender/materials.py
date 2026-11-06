@@ -196,9 +196,11 @@ def mat_glass():
 def mat_plaster():
     m, s = new_material('plaster')
     P = s.geo('Position')
-    n = s.noise(P, 3.0, detail=3.0)
-    col = s.mix(s.m('MULTIPLY', n, 0.3), srgb(232, 226, 214), srgb(200, 192, 178))
-    s.out_material(s.principled(base=col, rough=0.9))
+    n = s.noise(P, 1.5, detail=4.0)
+    col = s.hsv(srgb(234, 228, 216), v=s.maprange(n, 0.3, 0.7, 0.97, 1.02))
+    fine = s.noise(P, 60.0, detail=3.0)
+    nrm = s.bump(fine, strength=0.08, distance=0.002)
+    s.out_material(s.principled(base=col, rough=0.92, normal=nrm, spec=0.3))
     return m
 
 
@@ -347,3 +349,188 @@ def mat_vine():
 def mat_lavender():
     return _leaf('lavender', [(0.0, srgb(98, 110, 80)), (0.45, srgb(116, 124, 92)), (0.55, srgb(118, 96, 156)),
                               (0.8, srgb(96, 78, 140)), (1.0, srgb(132, 110, 170))], trans=0.2)
+
+
+# ---------------------------------------------------------------- interior
+def mat_stone_int():
+    """Interior exposed rubble stone with lime pointing ('joints beurrés')."""
+    m, s = new_material('stone_interior')
+    uv, P = _wall_uv(s)
+    warp = s.vm('SUBTRACT', s.noise(s.vm('MULTIPLY', uv, (2.0, 5.0, 1.0)), 1.0, detail=3.0, out='Color'), (0.5, 0.5, 0.5))
+    big_c = s.vm('ADD', s.vm('MULTIPLY', uv, (1 / 0.36, 1 / 0.14, 1.0)), s.vm('SCALE', warp, scale=0.8))
+    small_c = s.vm('ADD', s.vm('MULTIPLY', uv, (1 / 0.17, 1 / 0.075, 1.0)), s.vm('SCALE', warp, scale=0.7))
+    region = s.maprange(s.noise(s.vm('MULTIPLY', uv, (1.2, 2.0, 1.0)), 1.0, detail=3.0), 0.52, 0.56)
+    cb = s.voronoi(big_c, 1.0, 'F1', '2D', rnd=0.95, out='Color')
+    eb = s.voronoi(big_c, 1.0, 'DISTANCE_TO_EDGE', '2D', rnd=0.95, out='Distance')
+    cs = s.voronoi(small_c, 1.0, 'F1', '2D', rnd=0.95, out='Color')
+    es = s.voronoi(small_c, 1.0, 'DISTANCE_TO_EDGE', '2D', rnd=0.95, out='Distance')
+    cell = s.mix(region, cb, cs)
+    edge = s.mix(region, eb, s.m('MULTIPLY', es, 0.85), dtype='FLOAT')
+    width = s.maprange(s.noise(P, 3.0, detail=3.0), 0.3, 0.7, 0.03, 0.09)
+    edge = s.m('ADD', edge, s.m('MULTIPLY', s.m('SUBTRACT', s.noise(P, 25.0, detail=4.0), 0.5), 0.08))
+    stone_mask = s.m('MULTIPLY', s.m('SUBTRACT', edge, s.m('MULTIPLY', width, 0.4)), 12.0, clamp=True)
+    r = s.sep(cell)
+    stone_col = s.ramp(r[0], [(0.0, srgb(196, 178, 146)), (0.18, srgb(178, 158, 124)), (0.36, srgb(212, 198, 170)),
+                              (0.54, srgb(166, 150, 124)), (0.72, srgb(200, 176, 136)), (0.86, srgb(186, 172, 150)),
+                              (1.0, srgb(206, 186, 150))])
+    mott = s.noise(P, 4.0, detail=8.0, rough=0.65)
+    stone_col = s.mix(s.maprange(mott, 0.25, 0.75), s.hsv(stone_col, v=0.8, s=1.05), s.hsv(stone_col, v=1.08, s=0.9))
+    spk = s.maprange(s.noise(P, 90.0, detail=2.0), 0.62, 0.72)
+    stone_col = s.mix(s.m('MULTIPLY', spk, 0.35), stone_col, srgb(110, 98, 80))
+    mortar = s.mix(s.maprange(s.noise(P, 50.0, detail=3.0), 0.3, 0.7), srgb(214, 204, 184), srgb(186, 176, 156))
+    col = s.mix(stone_mask, mortar, stone_col)
+    rock = s.noise(P, 9.0, detail=8.0, rough=0.62)
+    cellh = s.m('MULTIPLY', r[1], 0.3)
+    h = s.m('ADD', s.m('MULTIPLY', stone_mask, s.m('ADD', 0.45, cellh)), s.m('MULTIPLY', rock, s.m('MULTIPLY', stone_mask, 0.55)))
+    nrm = s.bump(h, strength=0.7, distance=0.025)
+    s.out_material(s.principled(base=col, rough=0.88, normal=nrm, spec=0.3))
+    return m
+
+
+def mat_floor_stone():
+    """Honed limestone flags (per-tile tone from the 'rnd' attribute)."""
+    m, s = new_material('floor_stone')
+    P = s.geo('Position')
+    rnd = s.attr('rnd')
+    base = s.ramp(rnd, [(0.0, srgb(206, 192, 168)), (0.3, srgb(218, 206, 184)), (0.6, srgb(196, 180, 154)),
+                        (1.0, srgb(212, 196, 166))])
+    n = s.noise(P, 2.5, detail=6.0, rough=0.6)
+    col = s.mix(s.maprange(n, 0.3, 0.7), s.hsv(base, v=0.9), s.hsv(base, v=1.04))
+    fos = s.maprange(s.noise(P, 40.0, detail=2.0), 0.62, 0.7)
+    col = s.mix(s.m('MULTIPLY', fos, 0.5), col, srgb(150, 136, 112))
+    rough = s.maprange(s.noise(P, 1.2, detail=3.0), 0.3, 0.7, 0.32, 0.55)
+    nrm = s.bump(n, strength=0.12, distance=0.004)
+    s.out_material(s.principled(base=col, rough=rough, normal=nrm, spec=0.45))
+    return m
+
+
+def mat_oak_beam_x():
+    return _oak('oak_beam_x', tone=0.85, axis='X', weather=0.12)
+
+
+def mat_oak_beam_y():
+    return _oak('oak_beam_y', tone=0.85, axis='Y', weather=0.12)
+
+
+def _simple(name, col, rough=0.5, metal=0.0, sheen=0.0, spec=0.5, noise=0.0, coat=0.0):
+    m, s = new_material(name)
+    c = col
+    if noise:
+        P = s.geo('Position')
+        c = s.hsv(col, v=s.maprange(s.noise(P, 6.0, detail=4.0), 0.3, 0.7, 1 - noise, 1 + noise))
+    s.out_material(s.principled(base=c, rough=rough, metal=metal, sheen=sheen, spec=spec, coat=coat))
+    return m
+
+
+def mat_cabinet():
+    return _simple('cabinet_sage', srgb(132, 140, 120), rough=0.42, noise=0.03)
+
+
+def mat_worktop():
+    m, s = new_material('worktop_stone')
+    P = s.geo('Position')
+    v = s.noise(s.vm('MULTIPLY', P, (1.0, 3.0, 1.0)), 2.0, detail=8.0, rough=0.62, distortion=1.5)
+    col = s.mix(s.maprange(v, 0.45, 0.62), srgb(232, 226, 214), srgb(196, 188, 174))
+    s.out_material(s.principled(base=col, rough=0.22, spec=0.5, coat=0.15))
+    return m
+
+
+def mat_brass():
+    return _simple('brass', (0.80, 0.58, 0.30), rough=0.28, metal=1.0)
+
+
+def mat_steel():
+    return _simple('steel', (0.62, 0.62, 0.62), rough=0.25, metal=1.0)
+
+
+def mat_black_paint():
+    return _simple('black_paint', srgb(26, 26, 26), rough=0.55, noise=0.05)
+
+
+def mat_ceramic_white():
+    return _simple('ceramic_white', srgb(232, 228, 218), rough=0.18, spec=0.5)
+
+
+def mat_ceramic_earth():
+    return _simple('ceramic_earth', srgb(168, 122, 92), rough=0.55, noise=0.08)
+
+
+def mat_linen():
+    m, s = new_material('linen')
+    P = s.geo('Position')
+    w = s.noise(s.vm('MULTIPLY', P, (400.0, 400.0, 400.0)), 1.0, detail=1.0)
+    col = s.hsv(srgb(198, 188, 172), v=s.maprange(s.noise(P, 4.0, detail=3.0), 0.3, 0.7, 0.94, 1.04))
+    nrm = s.bump(w, strength=0.15, distance=0.002)
+    s.out_material(s.principled(base=col, rough=0.95, sheen=0.6, normal=nrm, spec=0.3))
+    return m
+
+
+def mat_cushion():
+    m, s = new_material('cushions')
+    rnd = s.attr('rnd')
+    col = s.ramp(rnd, [(0.0, srgb(160, 92, 58)), (0.33, srgb(160, 92, 58)), (0.34, srgb(112, 112, 82)),
+                       (0.66, srgb(112, 112, 82)), (0.67, srgb(222, 214, 196)), (1.0, srgb(222, 214, 196))], 'CONSTANT')
+    s.out_material(s.principled(base=col, rough=0.95, sheen=0.7, spec=0.3))
+    return m
+
+
+def mat_rug():
+    m, s = new_material('rug_wool')
+    P = s.geo('Position')
+    u = s.sep(P)
+    diag = s.m('ABSOLUTE', s.m('SUBTRACT', s.m('FRACT', s.m('MULTIPLY', s.m('ADD', u[0], u[1]), 2.2)), 0.5))
+    diag2 = s.m('ABSOLUTE', s.m('SUBTRACT', s.m('FRACT', s.m('MULTIPLY', s.m('SUBTRACT', u[0], u[1]), 2.2)), 0.5))
+    line = s.m('MINIMUM', s.maprange(diag, 0.0, 0.03), s.maprange(diag2, 0.0, 0.03))
+    pile = s.noise(P, 150.0, detail=2.0)
+    col = s.mix(line, srgb(70, 60, 50), srgb(226, 216, 196))
+    col = s.hsv(col, v=s.maprange(pile, 0.3, 0.7, 0.9, 1.05))
+    nrm = s.bump(pile, strength=0.4, distance=0.003)
+    s.out_material(s.principled(base=col, rough=1.0, sheen=0.8, normal=nrm, spec=0.2))
+    return m
+
+
+def mat_soot():
+    return _simple('soot', srgb(22, 20, 18), rough=0.95, noise=0.2)
+
+
+def mat_screen():
+    return _simple('screen', srgb(8, 8, 9), rough=0.05, spec=0.6)
+
+
+def mat_books():
+    m, s = new_material('books')
+    rnd = s.attr('rnd')
+    col = s.ramp(rnd, [(0.0, srgb(120, 52, 40)), (0.12, srgb(210, 200, 176)), (0.25, srgb(54, 70, 86)),
+                       (0.37, srgb(170, 140, 90)), (0.5, srgb(44, 44, 42)), (0.62, srgb(196, 170, 120)),
+                       (0.75, srgb(92, 104, 80)), (0.87, srgb(150, 86, 60)), (1.0, srgb(226, 220, 204))], 'CONSTANT')
+    s.out_material(s.principled(base=col, rough=0.7, spec=0.35))
+    return m
+
+
+def mat_leather():
+    return _simple('leather', srgb(130, 80, 48), rough=0.45, noise=0.08, spec=0.4)
+
+
+def mat_rattan():
+    m, s = new_material('rattan')
+    P = s.geo('Position')
+    w = s.noise(s.vm('MULTIPLY', P, (60.0, 60.0, 60.0)), 1.0, detail=2.0)
+    col = s.mix(w, srgb(170, 130, 80), srgb(200, 160, 105))
+    s.out_material(s.principled(base=col, rough=0.7))
+    return m
+
+
+def mat_leaf_olive():
+    return _leaf('leaf_olive', [(0.0, srgb(92, 104, 72)), (0.5, srgb(118, 128, 94)), (1.0, srgb(150, 156, 124))], trans=0.3)
+
+
+def mat_shade_glow():
+    """Linen lamp shade: translucent + soft emission (lit from inside)."""
+    m, s = new_material('shade_glow')
+    tr = s.node('ShaderNodeBsdfTranslucent', ins={'Color': (1.0, 0.86, 0.66, 1)})
+    em = s.node('ShaderNodeEmission', ins={'Color': (1.0, 0.72, 0.44, 1), 'Strength': 0.5})
+    add = s.node('ShaderNodeAddShader')
+    s.t.links.new(tr.outputs[0], add.inputs[0])
+    s.t.links.new(em.outputs[0], add.inputs[1])
+    s.out_material(add.outputs[0])
+    return m

@@ -90,15 +90,19 @@ def _orient(f, quad_pts):
 
 
 # ----------------------------------------------------------------------------
-def build_walls(col):
+def build_walls(col, inner='plaster'):
     stone, plaster = M.get('stone'), M.get('plaster')
+    mats = [stone, plaster]
+    if inner != 'plaster':
+        mats.append(M.get(inner))
     mb = MeshBuilder()
     for key, f in FACADES.items():
+        imat = 2 if (inner != 'plaster' and key == 'N') else 1
         u0, u1 = f['u']
         holes = [(u - w / 2, u + w / 2, z, z + h) for (u, z, w, h, k) in OPENINGS[key]]
         U = sorted(set([u0, u1] + [h[0] for h in holes] + [h[1] for h in holes]))
         Z = sorted(set([Z0, ZE] + [h[2] for h in holes] + [h[3] for h in holes]))
-        for d, mat, flip in ((0.0, 0, False), (T, 1, True)):
+        for d, mat, flip in ((0.0, 0, False), (T, imat, True)):
             for i in range(len(U) - 1):
                 for j in range(len(Z) - 1):
                     uc, zc = (U[i] + U[i + 1]) / 2, (Z[j] + Z[j + 1]) / 2
@@ -119,18 +123,19 @@ def build_walls(col):
             ring = [(a, c), (b, c), (b, e), (a, e)]
             for k in range(4):
                 (ua, za), (ub, zb) = ring[k], ring[(k + 1) % 4]
-                q = [fpt(f, ua, za, 0), fpt(f, ub, zb, 0), fpt(f, ub, zb, T), fpt(f, ua, za, T)]
-                # reveal normal should point towards the hole centre
-                p = np.array(q)
-                n = np.cross(p[1] - p[0], p[2] - p[1])
-                cen = fpt(f, (a + b) / 2, (c + e) / 2, T / 2)
-                face = [0, 1, 2, 3] if np.dot(n, cen - p.mean(0)) > 0 else [3, 2, 1, 0]
-                mb.add(q, [face], 0)
+                for (d0, d1, mi) in ((0.0, T * 0.45, 0), (T * 0.45, T, imat)):
+                    q = [fpt(f, ua, za, d0), fpt(f, ub, zb, d0), fpt(f, ub, zb, d1), fpt(f, ua, za, d1)]
+                    # reveal normal should point towards the hole centre
+                    p = np.array(q)
+                    n = np.cross(p[1] - p[0], p[2] - p[1])
+                    cen = fpt(f, (a + b) / 2, (c + e) / 2, T / 2)
+                    face = [0, 1, 2, 3] if np.dot(n, cen - p.mean(0)) > 0 else [3, 2, 1, 0]
+                    mb.add(q, [face], mi)
     # wall tops of the long walls (hidden under roof, closes the volume)
     for sgn in (1, -1):
         y0, y1 = sgn * HD, sgn * (HD - T)
         mb.add([(-HL, y0, ZE), (HL, y0, ZE), (HL, y1, ZE), (-HL, y1, ZE)], [[0, 1, 2, 3]], 1)
-    return mb.build('walls', [stone, plaster], col)
+    return mb.build('walls', mats, col)
 
 
 # ----------------------------------------------------------------------------
@@ -542,13 +547,17 @@ def interior_lights(col):
     area('L_chRDC', (PX(648), PYg(404), FFL1 - 0.35), (1.2, 1.2), 30, (1.0, 0.68, 0.4))
 
 
-def build(rng):
+def build(rng, interior='simple'):
     col = coll('house')
-    build_walls(col)
+    build_walls(col, 'stone_int' if interior == 'full' else 'plaster')
     build_stonework(col, rng)
     build_joinery(col, rng)
     build_roof(col, rng)
     build_chimney(col, rng)
-    build_interior(col, rng)
-    interior_lights(col)
+    if interior == 'full':
+        import interior as INT
+        INT.build(rng)
+    else:
+        build_interior(col, rng)
+        interior_lights(col)
     return col

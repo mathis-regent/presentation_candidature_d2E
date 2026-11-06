@@ -18,14 +18,26 @@ CFG = dict(
     preview=dict(res=(900, 600), samples=48, grass=0.25, trees=0.35, noise=0.05),
     mid=dict(res=(1350, 900), samples=128, grass=0.6, trees=0.7, noise=0.03),
     final=dict(res=(2400, 1600), samples=384, grass=1.0, trees=1.0, noise=0.012),
+    final_int=dict(res=(2100, 1400), samples=420, grass=1.0, trees=1.0, noise=0.025),
 )[PRESET]
+VIEW = os.environ.get('VIEW', 'ext')
+VIEWS = {
+    'ext': dict(pos=[-27.0, 21.5], target=[8.0, -2.0], h=1.65, shift=0.06, lens=24.0, interior='simple',
+                flags='house,land,garden,hero,woods,grass'),
+    # interiors: camera height is absolute (ground floor at z=0.15)
+    'int_kitchen': dict(pos=[6.9, -2.0], target=[2.0, 3.6], z=1.45, shift=0.0, lens=16.0, interior='full',
+                        flags='house,land,garden,hero,woods,grass', sector=[5.17, 4.9, 90.0, 150.0]),
+    'int_living': dict(pos=[2.9, -2.55], target=[-2.4, -3.0], z=1.4, shift=0.0, lens=20.0, interior='full',
+                       flags='house,land,garden,hero', sector=[5.17, 4.9, 90.0, 150.0]),
+}
+VW = VIEWS[VIEW]
 CAM = json.loads(os.environ.get('CAM', '{}'))
-cam_xy = CAM.get('pos', [-27.0, 21.5])
-cam_t = CAM.get('target', [8.0, -2.0])
-cam_h = CAM.get('h', 1.65)
-cam_shift = CAM.get('shift', 0.06)
-cam_lens = CAM.get('lens', 24.0)
-FLAGS = os.environ.get('FLAGS', 'house,land,garden,hero,woods,grass').split(',')
+cam_xy = CAM.get('pos', VW['pos'])
+cam_t = CAM.get('target', VW['target'])
+cam_h = CAM.get('h', VW.get('h', 1.65))
+cam_shift = CAM.get('shift', VW['shift'])
+cam_lens = CAM.get('lens', VW['lens'])
+FLAGS = os.environ.get('FLAGS', VW['flags']).split(',')
 
 t0 = time.time()
 reset_scene()
@@ -36,13 +48,22 @@ def log(*a):
     print('[%6.1fs]' % (time.time() - t0), *a, flush=True)
 
 
-cz = float(land.height(np.array([cam_xy[0]]), np.array([cam_xy[1]]))[0]) + cam_h
+if 'z' in VW and 'h' not in CAM:
+    cz = VW['z']
+else:
+    cz = float(land.height(np.array([cam_xy[0]]), np.array([cam_xy[1]]))[0]) + cam_h
 cam_pos = np.array([cam_xy[0], cam_xy[1], cz])
 yaw = math.atan2(cam_t[1] - cam_xy[1], cam_t[0] - cam_xy[0])
 hfov = 2 * math.atan(18.0 / cam_lens)
+# region of the exterior that is actually seen (for grass / instanced woods)
+if 'sector' in VW:
+    so = VW['sector']
+    sec_pos, sec_yaw, sec_fov = np.array([so[0], so[1], 1.5]), math.radians(so[2]), math.radians(so[3])
+else:
+    sec_pos, sec_yaw, sec_fov = cam_pos, yaw, hfov
 
 if 'house' in FLAGS:
-    house.build(rng)
+    house.build(rng, VW['interior'])
     log('house')
 if 'land' in FLAGS:
     land.build_terrain(rng)
@@ -86,12 +107,12 @@ if 'woods' in FLAGS:
             o.parent = par
     # sample candidate positions in the camera's view sector
     n_cand = int(900000 * CFG['trees'])
-    a0, a1 = yaw - hfov / 2 - 0.25, yaw + hfov / 2 + 0.25
+    a0, a1 = sec_yaw - sec_fov / 2 - 0.25, sec_yaw + sec_fov / 2 + 0.25
     rmin, rmax = 22.0, 3800.0
     r = np.sqrt(rng.uniform(rmin ** 2, rmax ** 2, n_cand))
     a = rng.uniform(a0, a1, n_cand)
-    x = cam_pos[0] + r * np.cos(a)
-    y = cam_pos[1] + r * np.sin(a)
+    x = sec_pos[0] + r * np.cos(a)
+    y = sec_pos[1] + r * np.sin(a)
     h = land.height(x, y)
     fm = land.forest_mask(x, y, h)
     tone, hd = land.field_info(x, y)
@@ -121,11 +142,11 @@ if 'woods' in FLAGS:
 if 'grass' in FLAGS:
     gc = coll('grass')
     na, nr = 160, 120
-    aa = np.linspace(yaw - hfov / 2 - 0.12, yaw + hfov / 2 + 0.12, na)
+    aa = np.linspace(sec_yaw - sec_fov / 2 - 0.12, sec_yaw + sec_fov / 2 + 0.12, na)
     rr = 1.2 + (np.linspace(0, 1, nr) ** 1.8) * 50.0
     A, R = np.meshgrid(aa, rr)
-    X = cam_pos[0] + R * np.cos(A)
-    Y = cam_pos[1] + R * np.sin(A)
+    X = sec_pos[0] + R * np.cos(A)
+    Y = sec_pos[1] + R * np.sin(A)
     Z = land.height(X, Y)
     V = np.column_stack([X.ravel(), Y.ravel(), Z.ravel()])
     idx = np.arange(na * nr).reshape(nr, na)
@@ -146,11 +167,22 @@ if 'grass' in FLAGS:
               root=0.003, tip=0.0003, rough=0.05, seed=5)
     log('grass')
 
+if VW['interior'] == 'full':
+    SS.SUN_EL = math.radians(float(os.environ.get('SUN_EL', 9.0)))
+    SS.SUN_AZ = math.radians(float(os.environ.get('SUN_AZ', 296.0)))
 SS.setup_world(float(os.environ.get('SKY', 0.26)))
 SS.setup_sun(float(os.environ.get('SUNE', 5.8)))
 tz = cz + CAM.get('tilt', 0.0)
 SS.setup_camera(tuple(cam_pos), (cam_t[0], cam_t[1], tz), cam_lens, shift_y=cam_shift)
 SS.render_settings(CFG['res'], CFG['samples'], OUT, noise=CFG['noise'], passes=OUT.endswith('.exr'))
+if VW['interior'] == 'full':
+    sc = bpy.context.scene
+    sc.cycles.samples = int(CFG['samples'] * float(os.environ.get('INT_SPP', 2.5 if PRESET != 'final_int' else 1.0)))
+    sc.cycles.diffuse_bounces = 5
+    sc.cycles.glossy_bounces = 4
+    sc.cycles.max_bounces = 10
+    sc.cycles.adaptive_threshold = max(CFG['noise'], 0.02)
+    sc.cycles.sample_clamp_indirect = 6.0
 if os.environ.get('BORDER'):
     b = [float(v) for v in os.environ['BORDER'].split(',')]
     sc = bpy.context.scene
