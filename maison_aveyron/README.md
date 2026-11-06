@@ -84,7 +84,7 @@ python post.py ../rendu/render.exr ../rendu/maison_aveyron_golden_hour.jpg
 `CAM='{"pos":[-30,24],"target":[8,-2]}'` changes the viewpoint. Presets: `preview`, `mid`, `final`.
 
 Interiors: `VIEW=int_kitchen` or `VIEW=int_living` with the `final_int` preset, then
-`python post.py render.exr out.png haze=0 mist=0 clouds=0 exposure=2.7`.
+`python post.py render.exr out.png haze=0 mist=0 clouds=0 exposure=2.7` (kitchen) or `exposure=1.35` (living, `INT_SPP=1.4`).
 
 To use an AI image generator instead, see [`PROMPT_IA.md`](PROMPT_IA.md). Give it the render as the
 reference image so it keeps the layout.
