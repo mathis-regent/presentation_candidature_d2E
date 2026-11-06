@@ -366,23 +366,23 @@ def mat_stone_int():
     es = s.voronoi(small_c, 1.0, 'DISTANCE_TO_EDGE', '2D', rnd=0.95, out='Distance')
     cell = s.mix(region, cb, cs)
     edge = s.mix(region, eb, s.m('MULTIPLY', es, 0.85), dtype='FLOAT')
-    width = s.maprange(s.noise(P, 3.0, detail=3.0), 0.3, 0.7, 0.03, 0.09)
+    width = s.maprange(s.noise(P, 3.0, detail=3.0), 0.3, 0.7, 0.012, 0.045)
     edge = s.m('ADD', edge, s.m('MULTIPLY', s.m('SUBTRACT', s.noise(P, 25.0, detail=4.0), 0.5), 0.08))
-    stone_mask = s.m('MULTIPLY', s.m('SUBTRACT', edge, s.m('MULTIPLY', width, 0.4)), 12.0, clamp=True)
+    stone_mask = s.m('MULTIPLY', s.m('SUBTRACT', edge, width), 16.0, clamp=True)
     r = s.sep(cell)
-    stone_col = s.ramp(r[0], [(0.0, srgb(196, 178, 146)), (0.18, srgb(178, 158, 124)), (0.36, srgb(212, 198, 170)),
-                              (0.54, srgb(166, 150, 124)), (0.72, srgb(200, 176, 136)), (0.86, srgb(186, 172, 150)),
-                              (1.0, srgb(206, 186, 150))])
+    stone_col = s.ramp(r[0], [(0.0, srgb(204, 186, 152)), (0.18, srgb(176, 154, 118)), (0.36, srgb(220, 206, 178)),
+                              (0.54, srgb(160, 144, 118)), (0.72, srgb(208, 182, 140)), (0.86, srgb(190, 176, 154)),
+                              (1.0, srgb(214, 192, 154))])
     mott = s.noise(P, 4.0, detail=8.0, rough=0.65)
     stone_col = s.mix(s.maprange(mott, 0.25, 0.75), s.hsv(stone_col, v=0.8, s=1.05), s.hsv(stone_col, v=1.08, s=0.9))
     spk = s.maprange(s.noise(P, 90.0, detail=2.0), 0.62, 0.72)
     stone_col = s.mix(s.m('MULTIPLY', spk, 0.35), stone_col, srgb(110, 98, 80))
-    mortar = s.mix(s.maprange(s.noise(P, 50.0, detail=3.0), 0.3, 0.7), srgb(214, 204, 184), srgb(186, 176, 156))
+    mortar = s.mix(s.maprange(s.noise(P, 50.0, detail=3.0), 0.3, 0.7), srgb(196, 186, 166), srgb(170, 160, 140))
     col = s.mix(stone_mask, mortar, stone_col)
     rock = s.noise(P, 9.0, detail=8.0, rough=0.62)
     cellh = s.m('MULTIPLY', r[1], 0.3)
-    h = s.m('ADD', s.m('MULTIPLY', stone_mask, s.m('ADD', 0.45, cellh)), s.m('MULTIPLY', rock, s.m('MULTIPLY', stone_mask, 0.55)))
-    nrm = s.bump(h, strength=0.7, distance=0.025)
+    h = s.m('ADD', s.m('MULTIPLY', stone_mask, s.m('ADD', 0.25, cellh)), s.m('MULTIPLY', rock, 0.6))
+    nrm = s.bump(h, strength=0.45, distance=0.02)
     s.out_material(s.principled(base=col, rough=0.88, normal=nrm, spec=0.3))
     return m
 

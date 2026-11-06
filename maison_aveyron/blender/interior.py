@@ -448,15 +448,18 @@ def living(col, rng):
                                    M.get('ceramic_white'), M.get('bark'), M.get('black_metal'), M.get('shade_glow')], col)
 
 
+OLIVE = dict(trunk=0.7, r0=0.07, levels=3, nchild=[6, 5, 6], cang=[(30, 55), (30, 55), (30, 60)],
+             blen=[0.7, 0.6, 0.4, 0.22], wob=[0.2, 0.2, 0.25, 0.3], up=[0.03, 0.12, 0.1, 0.12],
+             crad=[0.5, 0.55, 0.6], start=[0.6, 0.2, 0.2], leaf=(0.09, 0.025), clusters=12.0,
+             per_cluster=16, cl_r=0.08, seg=[0.12, 0.12, 0.1, 0.08], mat='leaf_olive')
+
+
 def plants(col, rng):
     # olive tree in a large terracotta pot, in the sunny corner by the glass bay
-    veg.TREE_PARAMS['olive'] = dict(trunk=0.9, r0=0.06, levels=3, nchild=[5, 5, 6], cang=[(25, 50), (30, 55), (30, 60)],
-                                    blen=[0.9, 0.75, 0.45, 0.22], wob=[0.25, 0.25, 0.3, 0.3], up=[0.0, 0.1, 0.08, 0.1],
-                                    crad=[0.5, 0.55, 0.6], start=[0.7, 0.2, 0.2], leaf=(0.07, 0.016), clusters=10.0,
-                                    per_cluster=14, cl_r=0.07, seg=[0.15, 0.15, 0.1, 0.08], mat='leaf_olive')
+    veg.TREE_PARAMS['olive'] = OLIVE
     w, l, _ = veg.make_tree('olivier', 4, 'olive', collection=col)
     px, py = XE - 0.4, YI1 - 0.42
-    veg.place((w, l), (px, py, FFL0 + 0.5), 0.3, 1.0)
+    veg.place((w, l), (px, py, FFL0 + 0.45), 0.3, 1.0)
     mb = MeshBuilder()
     lathe(mb, [(0.0, 0.0), (0.2, 0.0), (0.27, 0.45), (0.3, 0.5), (0.28, 0.5), (0.0, 0.46)], px, py, FFL0, mat=0)
     mb.build('olive_pot', [M.get('ceramic_earth')], col)
