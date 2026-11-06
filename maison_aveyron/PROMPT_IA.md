@@ -1,7 +1,7 @@
 # Prompt for an AI image generator (Midjourney / DALL·E / Firefly / SDXL…)
 
 Image generators cannot read a floor plan precisely. For the strictest fidelity to the plan,
-use `rendu/maison_aveyron_golden_hour.png` (3D render built from the plan) as the reference
+use `rendu/maison_aveyron_golden_hour.jpg` (3D render built from the plan) as the reference
 image (image-to-image or ControlNet *depth/canny* ~0.6–0.8), together with this prompt:
 
 ```

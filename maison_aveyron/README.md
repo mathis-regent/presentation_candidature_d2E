@@ -1,6 +1,6 @@
 # Maison en Aveyron: exterior render built from the hand-drawn plan
 
-![render](rendu/maison_aveyron_golden_hour.png)
+![render](rendu/maison_aveyron_golden_hour.jpg)
 
 This picture is **not** an AI image. It is a physically based path-traced render
 (Blender Cycles) of a 3D model built from the sketch (`plan_croquis.jpg`), so the footprint,
@@ -42,7 +42,7 @@ placed one per room, centred on each room's exterior wall.
 ## Architecture / setting
 
 * Coursed rubble limestone walls (warm beige-golden), lime pointing, dressed quoins, lintels and sills
-* Steep (47°) roof of individual schist *lauzes* (~6,000 modelled slabs), stone chimney with lauze cap
+* Steep (47°) roof of individual schist *lauzes* (several thousand individually modelled slabs), stone chimney with lauze cap
 * Natural oak plank shutters with battens, painted casement windows, anthracite frames on the modern openings
 * Limestone-paved terrace, oak pergola with vine, lavender, potted box balls, stepping-stone path across the lawn
 * Dry-stone walls, gravel courtyard and drive to the garage, old chestnut and oak trees
@@ -55,8 +55,8 @@ placed one per room, centred on each room's exterior wall.
 ```bash
 pip install bpy==5.2.3 OpenEXR pillow   # Python 3.13
 cd blender
-python build_scene.py final ../rendu/render.exr   # ~1h on 4 CPU cores
-python post.py ../rendu/render.exr ../rendu/maison_aveyron_golden_hour.png
+python build_scene.py final ../rendu/render.exr   # ~15 min on 4 CPU cores
+python post.py ../rendu/render.exr ../rendu/maison_aveyron_golden_hour.jpg
 ```
 
 `CAM='{"pos":[-30,24],"target":[8,-2]}'` changes the viewpoint. Presets: `preview`, `mid`, `final`.
