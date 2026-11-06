@@ -72,6 +72,18 @@ The open space between the WC/bathroom block and the garage wall follows the pla
   aerial haze and mist in the valley (height-fog post-process)
 * 24 mm lens, full frame, eye level, vertical lines kept straight
 
+## Visite 360° (page à partager)
+
+`visite/` contient la page de visite : les rendus, le plan et trois panoramas 360° (jardin, terrasse,
+séjour) reliés par des flèches. Le viewer est Pannellum (open source).
+
+* `visite/index.html` est la version publiée sur claude.ai.
+* `visite/standalone.html` est la même page en document HTML complet. Elle s'héberge telle quelle (GitHub Pages,
+  Netlify…) avec les dossiers `img/` et `panos/`. Elle doit être servie par un serveur web : ouverte
+  directement depuis le disque, le navigateur bloque le chargement des panoramas.
+* Les panoramas sont rendus avec `VIEW=pano_jardin|pano_terrasse python build_scene.py pano …` et
+  `VIEW=pano_sejour python build_scene.py pano_int …`, puis `python visite/gen_page.py <dossier des .json> visite`.
+
 ## Re-render
 
 ```bash
