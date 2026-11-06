@@ -42,6 +42,11 @@ fwd2 = fwd * math.cos(pitch) + up * math.sin(pitch)
 up2 = -fwd * math.sin(pitch) + up * math.cos(pitch)
 D = fwd2 * lens + right * xs[..., None] + up2 * ys[..., None]
 D /= np.linalg.norm(D, axis=-1, keepdims=True)
+if meta.get('pano'):
+    phi = (jj / W - 0.5) * 2 * math.pi * float(opt.get('pano_sign', 1))
+    lat = (0.5 - ii / H) * math.pi
+    D = (np.cos(lat)[..., None] * (np.cos(phi)[..., None] * fwd + np.sin(phi)[..., None] * right)
+         + np.sin(lat)[..., None] * up)
 sun = np.array(meta['sun'])
 sun_col = np.array(meta['sun_color'])
 

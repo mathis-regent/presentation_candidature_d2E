@@ -19,8 +19,12 @@ CFG = dict(
     mid=dict(res=(1350, 900), samples=128, grass=0.6, trees=0.7, noise=0.03),
     final=dict(res=(2400, 1600), samples=384, grass=1.0, trees=1.0, noise=0.012),
     final_int=dict(res=(2100, 1400), samples=420, grass=1.0, trees=1.0, noise=0.025),
+    pano=dict(res=(4096, 2048), samples=200, grass=1.0, trees=1.0, noise=0.02),
+    pano_int=dict(res=(3584, 1792), samples=280, grass=1.0, trees=1.0, noise=0.03),
+    pano_test=dict(res=(1024, 512), samples=24, grass=0.3, trees=0.3, noise=0.08),
 )[PRESET]
 VIEW = os.environ.get('VIEW', 'ext')
+TZ_TERR = 0.13 + 1.5
 VIEWS = {
     'ext': dict(pos=[-27.0, 21.5], target=[8.0, -2.0], h=1.65, shift=0.06, lens=24.0, interior='simple',
                 flags='house,land,garden,hero,woods,grass'),
@@ -29,8 +33,16 @@ VIEWS = {
                         flags='house,land,garden,hero,woods,grass', sector=[5.17, 4.9, 90.0, 150.0]),
     'int_living': dict(pos=[1.55, -3.65], target=[-2.0, -1.75], z=1.3, shift=0.0, lens=20.0, interior='full',
                        flags='house,land,garden,hero', sector=[5.17, 4.9, 90.0, 150.0]),
+    # 360° panoramas for the virtual tour (sector = full circle)
+    'pano_jardin': dict(pos=[-12.0, 14.0], target=[-12.0, 0.0], h=1.6, shift=0.0, lens=24.0, interior='full',
+                        flags='house,land,garden,hero,woods,grass', pano=True, sector=[-12.0, 14.0, 0.0, 360.0]),
+    'pano_terrasse': dict(pos=[7.3, 6.6], target=[7.3, 0.0], z=TZ_TERR, shift=0.0, lens=24.0, interior='full',
+                          flags='house,land,garden,hero,woods,grass', pano=True, sector=[7.3, 6.6, 0.0, 360.0]),
+    'pano_sejour': dict(pos=[3.75, 0.25], target=[3.75, -5.0], z=1.45, shift=0.0, lens=24.0, interior='full',
+                        flags='house,land,garden,hero,woods,grass', pano=True, sector=[5.17, 4.9, 90.0, 150.0]),
 }
 VW = VIEWS[VIEW]
+PANO = VW.get('pano', False)
 CAM = json.loads(os.environ.get('CAM', '{}'))
 cam_xy = CAM.get('pos', VW['pos'])
 cam_t = CAM.get('target', VW['target'])
@@ -106,7 +118,7 @@ if 'woods' in FLAGS:
             srcf.objects.link(o)
             o.parent = par
     # sample candidate positions in the camera's view sector
-    n_cand = int(900000 * CFG['trees'])
+    n_cand = int(900000 * CFG['trees'] * max(1.0, (sec_fov + 0.5) / (hfov + 0.5)) * (0.8 if PANO else 1.0))
     a0, a1 = sec_yaw - sec_fov / 2 - 0.25, sec_yaw + sec_fov / 2 + 0.25
     rmin, rmax = 22.0, 3800.0
     r = np.sqrt(rng.uniform(rmin ** 2, rmax ** 2, n_cand))
@@ -142,7 +154,11 @@ if 'woods' in FLAGS:
 if 'grass' in FLAGS:
     gc = coll('grass')
     na, nr = 160, 120
-    aa = np.linspace(sec_yaw - sec_fov / 2 - 0.12, sec_yaw + sec_fov / 2 + 0.12, na)
+    if sec_fov >= 2 * math.pi - 1e-3:
+        na = 420
+        aa = np.linspace(-math.pi, math.pi, na)
+    else:
+        aa = np.linspace(sec_yaw - sec_fov / 2 - 0.12, sec_yaw + sec_fov / 2 + 0.12, na)
     rr = 1.2 + (np.linspace(0, 1, nr) ** 1.8) * 50.0
     A, R = np.meshgrid(aa, rr)
     X = sec_pos[0] + R * np.cos(A)
@@ -158,26 +174,28 @@ if 'grass' in FLAGS:
     w *= ~garden.no_grass_mask(X.ravel(), Y.ravel())
     w = np.clip(w, 0, 1)
     gm = veg.grass_material()
-    veg.grass('lawn', V, F, w, int(60000 * CFG['grass']), 0.09, gc, gm, children=12, child_radius=0.05,
+    gscale = (sec_fov / hfov) * 0.7 if sec_fov >= 2 * math.pi - 1e-3 else 1.0
+    veg.grass('lawn', V, F, w, int(60000 * CFG['grass'] * gscale), 0.09, gc, gm, children=10 if gscale > 1 else 12, child_radius=0.05,
               root=0.0022, tip=0.0003, rough=0.012, seed=3)
     # longer unmown grass along the dry-stone walls and the house base
     dw = np.minimum.reduce([garden.dist_to_polyline(garden._smooth(wl, 2), X.ravel(), Y.ravel()) for wl in garden.WALLS])
     w2 = np.clip(1.2 - np.abs(dw - 0.7) / 0.6, 0, 1) * (Rv < 60)
-    veg.grass('wall_grass', V, F, w2, int(12000 * CFG['grass']), 0.32, gc, gm, children=8, child_radius=0.08,
+    veg.grass('wall_grass', V, F, w2, int(12000 * CFG['grass'] * gscale), 0.32, gc, gm, children=8, child_radius=0.08,
               root=0.003, tip=0.0003, rough=0.05, seed=5)
     log('grass')
 
-if VW['interior'] == 'full':
+INT_RENDER = VIEW.startswith('int_') or VIEW == 'pano_sejour'
+if INT_RENDER:
     SS.SUN_EL = math.radians(float(os.environ.get('SUN_EL', 9.0)))
     SS.SUN_AZ = math.radians(float(os.environ.get('SUN_AZ', 296.0)))
 SS.setup_world(float(os.environ.get('SKY', 0.26)))
 SS.setup_sun(float(os.environ.get('SUNE', 5.8)))
 tz = cz + CAM.get('tilt', 0.0)
-SS.setup_camera(tuple(cam_pos), (cam_t[0], cam_t[1], tz), cam_lens, shift_y=cam_shift)
+SS.setup_camera(tuple(cam_pos), (cam_t[0], cam_t[1], tz), cam_lens, shift_y=cam_shift, pano=PANO)
 SS.render_settings(CFG['res'], CFG['samples'], OUT, noise=CFG['noise'], passes=OUT.endswith('.exr'))
-if VW['interior'] == 'full':
+if INT_RENDER:
     sc = bpy.context.scene
-    sc.cycles.samples = int(CFG['samples'] * float(os.environ.get('INT_SPP', 2.5 if PRESET != 'final_int' else 1.0)))
+    sc.cycles.samples = int(CFG['samples'] * float(os.environ.get('INT_SPP', 2.5 if PRESET in ('preview', 'mid') else 1.0)))
     sc.cycles.diffuse_bounces = 5
     sc.cycles.glossy_bounces = 4
     sc.cycles.max_bounces = 10
@@ -193,7 +211,7 @@ if os.environ.get('SAVE_BLEND'):
     bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_BLEND'])
 sv = SS.sun_vector()
 with open(os.path.splitext(OUT)[0] + '.json', 'w') as fh:
-    json.dump(dict(cam=list(map(float, cam_pos)), yaw=yaw, lens=cam_lens, shift_y=cam_shift, sensor=[36.0, 24.0],
+    json.dump(dict(pano=PANO, cam=list(map(float, cam_pos)), yaw=yaw, lens=cam_lens, shift_y=cam_shift, sensor=[36.0, 24.0],
                    res=list(CFG['res']), sun=[sv.x, sv.y, sv.z], sun_color=list(bpy.data.lights['sun'].color),
                    pitch=math.atan2(tz - cz, math.hypot(cam_t[0] - cam_xy[0], cam_t[1] - cam_xy[1]))), fh)
 log('rendering', CFG)

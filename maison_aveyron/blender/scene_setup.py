@@ -50,8 +50,14 @@ def setup_sun(strength=4.0):
     return ob
 
 
-def setup_camera(loc, target, lens=24.0, shift_x=0.0, shift_y=0.0):
+def setup_camera(loc, target, lens=24.0, shift_x=0.0, shift_y=0.0, pano=False):
     cd = bpy.data.cameras.new('cam')
+    if pano:
+        cd.type = 'PANO'
+        try:
+            cd.panorama_type = 'EQUIRECTANGULAR'
+        except Exception:
+            cd.cycles.panorama_type = 'EQUIRECTANGULAR'
     cd.lens = lens
     cd.sensor_width = 36.0
     cd.sensor_height = 24.0
